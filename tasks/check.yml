@@ -1,0 +1,11 @@
+---
+# Ansible task
+#
+# Check required OpenXPKI variables
+
+- name: Check openxpki_database_password
+  fail:
+    msg: "'openxpki_database_password' must be defined"
+  when: openxpki_database_password is not defined
+
+...

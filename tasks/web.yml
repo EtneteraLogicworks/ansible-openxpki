@@ -1,0 +1,91 @@
+---
+# Ansible role
+#
+#
+
+- name: OpenXPKI Apache2 configuration
+  block:
+    - name: Let's Encrypt certificates for OpenXPKI
+      include_tasks: 'includes/letsencrypt/main.yml'
+      vars:
+        certificate: '{{ item }}'
+      when:
+        - item.enabled
+        - item.https_letsencrypt
+        # Do not run on backup server when there is a HA setup
+        - failover_role != 'backup'
+      loop:
+        - '{{ openxpki_vhost_ca }}'
+        - '{{ openxpki_vhost_pki }}'
+        - '{{ openxpki_vhost_scep }}'
+      tags:
+        - certs
+        - letsencrypt
+
+    - name: Remove default Apache2 configuration
+      file:
+        state: absent
+        path: '/etc/apache2/sites-enabled/openxpki.conf'
+      notify: Reload apache
+
+    - name: Create common Apache2 configuration
+      template:
+        src: 'webserver/openxpki.conf.j2'
+        dest: '/etc/apache2/conf-available/openxpki.conf'
+      notify: Reload apache
+
+    - name: Activate the common configuration
+      file:
+        path: '/etc/apache2/conf-enabled/openxpki.conf'
+        state: 'link'
+        src: '../conf-available/openxpki.conf'
+        force: true
+      notify: Reload apache
+
+    - name: Crete document root directories
+      file:
+        state: 'directory'
+        path: '{{ item }}'
+        owner: 'root'
+        group: 'www-data'
+        mode: '0755'
+      loop:
+        - '{{ openxpki_vhost_ca.www_root }}'
+        - '{{ openxpki_vhost_pki.www_root }}'
+        - '{{ openxpki_vhost_scep.www_root }}'
+
+    - name: Create vhost Apache2 configuration
+      template:
+        src: 'webserver/{{ item.name }}.conf.j2'
+        dest: '/etc/apache2/sites-available/{{ item.name }}.conf'
+      vars:
+        vhost: '{{ item }}'
+      loop:
+        - '{{ openxpki_vhost_ca }}'
+        - '{{ openxpki_vhost_pki }}'
+        - '{{ openxpki_vhost_scep }}'
+      notify: Reload apache
+
+    - name: Activate the vhosts
+      file:
+        path: '/etc/apache2/sites-enabled/{{ item.name }}.conf'
+        state: '{{ "link" if item.enabled else "absent" }}'
+        src: '../sites-available/{{ item.name }}.conf'
+        force: true
+      loop:
+        - '{{ openxpki_vhost_ca }}'
+        - '{{ openxpki_vhost_pki }}'
+        - '{{ openxpki_vhost_scep }}'
+      notify: Reload apache
+
+  tags:
+    - vhost
+
+
+- name: Create localconfig.yaml
+  copy:
+    dest: '/var/www/openxpki/localconfig.yaml'
+    content: '{{ openxpki_web_localconfig | to_nice_yaml }}'
+  when: openxpki_web_localconfig is defined
+
+...

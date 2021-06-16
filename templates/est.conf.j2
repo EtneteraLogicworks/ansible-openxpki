@@ -1,0 +1,23 @@
+[global]
+log_config = /etc/openxpki/est/log.conf
+log_facility = client.est
+socket = /var/openxpki/openxpki.socket
+realm = {{ item.realm }}
+servername = {{ item.servername | default("default")}}
+
+[auth]
+stack = _System
+
+[simpleenroll]
+workflow = certificate_enroll
+env = signer_cert
+
+[simplereenroll]
+workflow = certificate_enroll
+env = signer_cert
+
+[csrattrs]
+workflow = est_csrattrs
+
+[cacerts]
+workflow = est_cacerts

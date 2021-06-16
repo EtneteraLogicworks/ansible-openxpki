@@ -1,0 +1,114 @@
+{% macro openxpki_web_config() -%}
+
+    # Rewrite everything starting with openxpki
+    RewriteRule ^/openxpki/(.*) /$1 [L,NC]
+
+{% if openxpki_rpc_enabled %}
+    # RPC
+    ScriptAlias /rpc  /usr/lib/cgi-bin/rpc.fcgi
+{% endif %}
+
+    # builtin healthcheck
+    ScriptAlias /healthcheck /usr/lib/cgi-bin/healthcheck.fcgi
+
+    # certEP (3rd Party Plugin)
+    ScriptAlias /certep  /usr/lib/cgi-bin/certep.fcgi
+
+{% if openxpki_est_enabled %}
+    # EST (RFC7030)
+    ScriptAlias /.well-known/est  /usr/lib/cgi-bin/est.fcgi
+{% endif %}
+
+    ScriptAliasMatch ^/(([a-z0-9-]+)/)?cgi-bin/webui.fcgi /usr/lib/cgi-bin/webui.fcgi
+
+    RewriteEngine On
+
+    # Append a trailing slash
+    RewriteRule ^/([a-z0-9-]+)$ http://%{HTTP_HOST}/$1/ [L,R=301,NC]
+
+    # Map non existing direcotries to openxpki application starter
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_FILENAME} !-d
+    RewriteRule ^/([a-z0-9-]+)/$ /var/www/openxpki/index.html
+
+    # Map all other resources to the openxpki subdir
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_FILENAME} !-f
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_FILENAME} !-d
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_FILENAME} !-l
+    RewriteCond %{REQUEST_FILENAME} !(cgi-bin|rpc|certep|download|healthcheck)
+    RewriteRule ^/([a-z0-9-]+)/(.*) /var/www/openxpki/$2 [L,NC]
+
+    # Set security headers
+    <IfModule mod_headers.c>
+        Header set Strict-Transport-Security max-age=31536000
+        Header set X-Frame-Options deny
+        Header set X-XSS-Protection "1; mode=block;"
+    </IfModule>
+
+    DocumentRoot /var/www/openxpki
+    <Directory /var/www/openxpki>
+        Options SymLinksIfOwnerMatch
+        AllowOverride none
+{%   if vhost.custom_access is defined %}
+        {{ vhost.custom_access }}
+{%   else %}
+        Require all granted
+{%   endif %}
+    </Directory>
+{%- endmacro %}
+
+<VirtualHost *:80>
+    ServerName {{ vhost.site_name }}
+{% if vhost.aliases is defined %}
+    ServerAlias {{ vhost.aliases | join(' ') }}
+{% endif %}
+    ServerAdmin {{ vhost.admin_mail }}
+
+    LogLevel warn
+    ErrorLog ${APACHE_LOG_DIR}/{{ vhost.name }}_error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ vhost.name }}_access.log combined
+
+{% if vhost.https_enabled and vhost.https_redirect %}
+    Include includes/https_redirect.conf
+{% else %}
+    {{ openxpki_web_config() }}
+{% endif %}
+
+</VirtualHost>
+
+{% if vhost.https_enabled %}
+<VirtualHost *:443>
+    ServerName {{ vhost.site_name }}
+{% if vhost.aliases is defined %}
+    ServerAlias {{ vhost.aliases | join(' ') }}
+{% endif %}
+    ServerAdmin {{ vhost.admin_mail }}
+
+    LogLevel warn
+    ErrorLog ${APACHE_LOG_DIR}/{{ vhost.name }}_error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ vhost.name }}_access.log combined
+
+    Protocols h2 http/1.1
+
+    Include includes/tls_1.3-1.2.conf
+{% if vhost.https_letsencrypt %}
+    SSLCertificateFile {{ simp_le.home_dir }}/simp_le/{{ vhost.name }}/fullchain.pem
+    SSLCertificateKeyFile {{ simp_le.home_dir }}/simp_le/{{ vhost.name }}/key.pem
+{% else %}
+    SSLCertificateFile {{ vhost.cert }}
+    SSLCertificateKeyFile {{ vhost.key }}
+{%   if vhost.chain is defined %}
+    SSLCertificateChainFile {{ vhost.chain }}
+{%   endif %}
+{% endif %}
+
+    SSLCACertificatePath /etc/ssl/client/ca/
+    SSLVerifyClient optional
+    SSLVerifyDepth 3
+    SSLOptions +StdEnvVars +ExportCertData
+    SSLCARevocationCheck chain
+    SSLCARevocationPath /etc/ssl/client/crl/
+
+    {{ openxpki_web_config() }}
+
+</VirtualHost>
+{% endif %}

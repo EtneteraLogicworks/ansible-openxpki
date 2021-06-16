@@ -1,0 +1,84 @@
+---
+# Ansible defaults file
+#
+# Default variables for openxpki role
+
+# Database
+openxpki_database_type: 'MariaDB'
+openxpki_database_host: 'localhost'
+openxpki_database_port: 3306
+openxpki_database_name: 'openxpki'
+openxpki_database_user: 'openxpki'
+openxpki_database_create: true
+
+# General config
+openxpki_crypto_secret_default: 'root'
+openxpki_local_users: []
+
+# Realms
+openxpki_realms:
+  - name: 'democa'
+    label: 'Example.org Demo CA'
+    baseurl: 'https://pki.example.com'
+    home_page_file: 'pki_default_home.html'
+    ca_publishing:
+      enabled: false
+    crl_publishing:
+      enabled: false
+
+openxpki_realm_dirs: []
+openxpki_realm_files: []
+openxpki_realm_links: []
+
+# Publishing
+openxpki_crl_publishing:
+  enabled: false
+
+openxpki_publishing_dirs: []
+
+# Web
+openxpki_vhost_ca:
+  enabled: true
+  name: 'ca'
+  site_name: 'ca.example.com'
+  www_root: '/srv/www/ca'
+  admin_mail: '{{ admin_mail }}'
+  https_enabled: true
+  https_letsencrypt: false
+  https_redirect: false
+  cert: '/etc/ssl/certs/ssl-cert-snakeoil.pem'
+  key: '/etc/ssl/private/ssl-cert-snakeoil.key'
+
+openxpki_vhost_pki:
+  enabled: true
+  name: 'pki'
+  site_name: 'pki.example.com'
+  admin_mail: '{{ admin_mail }}'
+  https_enabled: true
+  https_letsencrypt: false
+  https_redirect: true
+  cert: '/etc/ssl/certs/ssl-cert-snakeoil.pem'
+  key: '/etc/ssl/private/ssl-cert-snakeoil.key'
+
+openxpki_vhost_scep:
+  enabled: true
+  name: 'scep'
+  site_name: 'scep.example.com'
+  www_root: '/var/www/scep/'
+  admin_mail: '{{ admin_mail }}'
+  https_enabled: false
+  https_letsencrypt: false
+  https_redirect: false
+  cert: '/etc/ssl/certs/ssl-cert-snakeoil.pem'
+  key: '/etc/ssl/private/ssl-cert-snakeoil.key'
+
+openxpki_static_web: '/var/www/static'
+
+# Enrollment
+openxpki_scep_server_configurations: []
+openxpki_est_server_configurations: []
+
+openxpki_est_enabled: false
+openxpki_rpc_enabled: false
+
+...

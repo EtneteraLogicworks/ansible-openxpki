@@ -1,0 +1,11 @@
+[global]
+log_config = /etc/openxpki/scep/log.conf
+log_facility = client.scep
+
+service=LibSCEP
+socket=/var/openxpki/openxpki.socket
+realm={{ item.realm }}
+iprange={{ item.iprange | default('0.0.0.0/0') }}
+servername={{ item.servername }}
+encryption_algorithm={{ item.encryption_algorithm | default ('3DES') }}
+hash_algorithm={{ item.hash_algorithm | default('SHA256') }}

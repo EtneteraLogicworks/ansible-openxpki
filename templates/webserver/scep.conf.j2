@@ -1,0 +1,69 @@
+{% macro openxpki_scep_config() -%}
+    ScriptAlias /scep /usr/lib/cgi-bin/scep.fcgi
+
+    RewriteEngine on
+
+    # Add Content-Type if missing
+    RequestHeader setifempty Content-Type application/pkcs7 "expr=%{REQUEST_METHOD} == 'POST'"
+
+    DocumentRoot {{ vhost.www_root }}
+    <Directory {{ vhost.www_root }}>
+        Options SymLinksIfOwnerMatch
+        AllowOverride none
+{%   if vhost.custom_access is defined %}
+        {{ vhost.custom_access }}
+{%   else %}
+        Require all granted
+{%   endif %}
+    </Directory>
+{%- endmacro %}
+
+<VirtualHost *:80>
+    ServerName {{ vhost.site_name }}
+{% if vhost.aliases is defined %}
+    ServerAlias {{ vhost.aliases | join(' ') }}
+{% endif %}
+    ServerAdmin {{ vhost.admin_mail }}
+
+    LogLevel warn
+    ErrorLog ${APACHE_LOG_DIR}/{{ vhost.name }}_error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ vhost.name }}_access.log combined
+
+{% if vhost.https_enabled and vhost.https_redirect %}
+    Include includes/https_redirect.conf
+{% else %}
+    {{ openxpki_scep_config() }}
+{% endif %}
+
+</VirtualHost>
+
+{% if vhost.https_enabled %}
+<VirtualHost *:443>
+    ServerName {{ vhost.site_name }}
+{% if vhost.aliases is defined %}
+    ServerAlias {{ vhost.aliases | join(' ') }}
+{% endif %}
+    ServerAdmin {{ vhost.admin_mail }}
+
+    LogLevel warn
+    ErrorLog ${APACHE_LOG_DIR}/{{ vhost.name }}_error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ vhost.name }}_access.log combined
+
+    Protocols h2 http/1.1
+
+    Include includes/tls_1.3-1.2.conf
+{% if vhost.https_letsencrypt %}
+    SSLCertificateFile {{ simp_le.home_dir }}/simp_le/{{ vhost.name }}/fullchain.pem
+    SSLCertificateKeyFile {{ simp_le.home_dir }}/simp_le/{{ vhost.name }}/key.pem
+{% else %}
+    SSLCertificateFile {{ vhost.cert }}
+    SSLCertificateKeyFile {{ vhost.key }}
+{%   if vhost.chain is defined %}
+    SSLCertificateChainFile {{ vhost.chain }}
+{%   endif %}
+{% endif %}
+
+    {{ openxpki_scep_config() }}
+
+</VirtualHost>
+{% endif %}

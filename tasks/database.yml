@@ -1,0 +1,34 @@
+---
+# Ansible tasks
+#
+# OpenXPKI cron setup
+
+- name: Setup database
+  block:
+  - name: Create OpenXPKI database
+    mysql_db:
+      name: '{{ openxpki_database_name }}'
+      state: present
+      login_unix_socket: '/var/run/mysqld/mysqld.sock'
+    notify: populate OpenXPKI db
+
+  - name: Create OpenXPKI user
+    mysql_user:
+      login_unix_socket: '/var/run/mysqld/mysqld.sock'
+      name: '{{ openxpki_database_user }}'
+      password: '{{ openxpki_database_password }}'
+      priv: '{{ openxpki_database_name }}.*:ALL'
+      state: present
+    no_log: true
+
+  when:
+    - failover_role != 'backup'
+    - openxpki_database_create
+
+- name: Create OpenXPKI database configuration
+  template:
+    src: 'database.yaml.j2'
+    dest: '/etc/openxpki/config.d/system/database.yaml'
+  notify: Restart OpenXPKI
+
+...

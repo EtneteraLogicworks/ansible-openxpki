@@ -1,0 +1,35 @@
+---
+# Ansible meta
+#
+# openxpki role dependencies
+
+dependencies:
+  - role: webserver
+    tags:
+      - webserver
+    vars:
+      webserver:
+        packages:
+          - 'apache2'
+          - 'libapache2-mod-fcgid'
+          - 'git'
+          - 'python-passlib'
+          - 'python3-passlib'
+        modules:
+          - 'expires'
+          - 'fcgid'
+          - 'headers'
+          - 'http2'
+          - 'info'
+          - 'proxy_fcgi'
+          - 'proxy_http'
+          - 'rewrite'
+          - 'ssl'
+
+  - role: logicworks_ca
+    vars:
+      ca_tlsclient_enabled: true
+    tags:
+     - logicworks-ca
+
+...

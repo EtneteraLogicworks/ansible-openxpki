@@ -1,0 +1,31 @@
+tokenapi:
+  certsign:      OpenXPKI::Crypto::Backend::API
+  crlsign:       OpenXPKI::Crypto::Backend::API
+  datasafe:      OpenXPKI::Crypto::Backend::API
+  scep:          OpenXPKI::Crypto::Tool::LibSCEP::API
+
+token:
+    default:
+        backend: OpenXPKI::Crypto::Backend::OpenSSL
+        api:     OpenXPKI::Crypto::Backend::API
+        engine:  OpenSSL
+        key_store: OPENXPKI
+
+        shell: /usr/bin/openssl
+        wrapper: ''
+        randfile: /var/openxpki/rand
+
+    javaks:
+        backend: OpenXPKI::Crypto::Tool::CreateJavaKeystore
+        api: OpenXPKI::Crypto::Tool::CreateJavaKeystore::API
+        engine:  OpenSSL
+        key_store: OPENXPKI
+        shell: /usr/bin/keytool
+        randfile: /var/openxpki/rand
+
+secret:
+    default:
+        label: Global secret group
+        export: 0
+        method: literal
+        value: {{ openxpki_crypto_secret_default }}

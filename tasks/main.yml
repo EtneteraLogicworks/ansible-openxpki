@@ -1,0 +1,57 @@
+---
+# Ansible role
+#
+#
+
+- name: Check variables
+  import_tasks: 'check.yml'
+  tags:
+    - openxpki-check
+    - openxpki-database
+
+- name: Install packages
+  import_tasks: 'install.yml'
+  tags:
+    - openxpki-install
+
+- name: Prepare database
+  import_tasks: 'database.yml'
+  tags:
+    - openxpki-database
+
+- name: Prepare crypto
+  import_tasks: 'crypto.yml'
+  tags:
+    - openxpki-crypto
+
+- name: Configure OpenXPKI Enrollment wrappers
+  import_tasks: 'wrappers.yml'
+  tags:
+    - openxpki-enroll
+    - openxpki-est
+    - openxpki-scep
+
+- name: Configure web frontend
+  import_tasks: 'web.yml'
+  tags:
+    - openxpki-web
+
+- meta: flush_handlers
+
+- name: Enable and start service
+  systemd:
+    name: 'openxpkid.service'
+    enabled: true
+    state: 'started'
+
+- name: Configure realms
+  import_tasks: 'realms.yml'
+  tags:
+    - openxpki-realms
+
+- name: Configure cron
+  import_tasks: 'cron.yml'
+  tags:
+    - openxpki-cron
+
+...

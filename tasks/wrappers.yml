@@ -1,0 +1,28 @@
+---
+# Ansible tasks
+#
+# OpenXPKI server wrappers
+
+- name: Create SCEP server configurations
+  template:
+    src: 'scep.conf.j2'
+    dest: '/etc/openxpki/scep/{{ item.name }}.conf'
+  loop: '{{ openxpki_scep_server_configurations }}'
+
+- name: Create SCEP server configurations
+  template:
+    src: 'est.conf.j2'
+    dest: '/etc/openxpki/est/{{ item.name }}.conf'
+  loop: '{{ openxpki_est_server_configurations }}'
+
+  # Not yet merged upstream: https://github.com/openxpki/libscep/pull/5
+- name: Deploy modified libscep.so library
+  copy:
+    dest: '/usr/lib/libscep.so'
+    src: 'libscep.so'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  notify: Run ldconfig
+
+...

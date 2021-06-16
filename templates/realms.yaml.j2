@@ -1,0 +1,6 @@
+{% for realm in openxpki_realms %}
+{{ realm.name }}:
+    label: {{ realm.label }}
+    baseurl: {{ realm.baseurl }}
+
+{% endfor %}

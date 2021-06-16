@@ -1,0 +1,18 @@
+---
+# Ansible handlers
+#
+
+- name: populate OpenXPKI db
+  shell: >-
+    zcat /usr/share/doc/libopenxpki-perl/examples/schema-mariadb.sql.gz |
+    mysql -u root --database {{ openxpki_database_name }}
+
+- name: Restart OpenXPKI
+  service:
+    name: 'openxpkid'
+    state: restarted
+
+- name: Run ldconfig
+  command: 'ldconfig'
+
+...

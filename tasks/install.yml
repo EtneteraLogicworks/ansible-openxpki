@@ -1,0 +1,27 @@
+---
+# Ansible tasks
+#
+# OpenXPKI install
+
+- name: Add OpenXPKI repository key
+  environment: '{{ proxy_env | default({}) }}'
+  apt_key:
+    url: 'https://packages.openxpki.org/v3/debian/Release.key'
+    state: present
+
+- name: Add OpenXPKI repository
+  apt_repository:
+    repo: 'deb http://packages.openxpki.org/v3/debian/ buster release'
+    state: present
+
+- name: Install OpenXPKI packages
+  apt:
+    name:
+      - 'libopenxpki-perl'
+      - 'libdbd-mysql-perl'
+      - 'openxpki-cgi-session-driver'
+      - 'openxpki-i18n'
+      - 'libcrypt-libscep-perl'
+      - 'libscep'
+
+...

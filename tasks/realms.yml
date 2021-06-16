@@ -1,0 +1,101 @@
+---
+# Ansible tasks
+#
+# OpenXPKI realms configuration
+
+- name: Configure realms
+  template:
+    src: 'realms.yaml.j2'
+    dest: '/etc/openxpki/config.d/system/realms.yaml'
+  notify: Restart OpenXPKI
+  tags:
+    - openxpki-realms-all
+
+- name: Realms static home page
+  block:
+    - name: Create home page directories
+      file:
+        state: 'directory'
+        dest: '{{ openxpki_static_web }}/{{ item.name }}'
+      loop: '{{ openxpki_realms }}'
+
+    - name: Create static home pages
+      copy:
+        src: '{{ item.home_page_file | default("pki_default_home.html") }}'
+        dest: '{{ openxpki_static_web }}/{{ item.name }}/home.html'
+      loop: '{{ openxpki_realms }}'
+
+  tags:
+    - openxpki-realms-homepage
+
+
+- name: Configure local users
+  template:
+    src: 'userdb.yaml.j2'
+    dest: '/home/pkiadm/userdb.yaml'
+    owner: 'root'
+    group: 'openxpki'
+    mode: '0640'
+  notify: Restart OpenXPKI
+  tags:
+    - openxpki-realms-localusers
+
+
+- name: Create realm file structure
+  block:
+    - name: Create array with all realms names
+      set_fact:
+        openxpki_all_realms: '{{ openxpki_realms | map(attribute="name") | list  }}'
+      check_mode: no
+      tags:
+         - openxpki-realms-singlefiles
+
+    - name: Create realm directories
+      file:
+        state: 'directory'
+        dest: '/etc/openxpki/config.d/realm/{{ item }}'
+        owner: 'openxpki'
+        group: 'www-data'
+      loop: '{{ openxpki_all_realms }}'
+      notify: Restart OpenXPKI
+
+    - name: Create content directories
+      file:
+        state: 'directory'
+        dest: '/etc/openxpki/config.d/realm/{{ item[0] }}/{{ item[1].path }}'
+        owner: 'openxpki'
+        group: 'www-data'
+        mode: '0750'
+      when: item[0] in (item[1].realms | default(openxpki_all_realms))
+      loop: '{{ openxpki_all_realms | product(openxpki_realm_dirs) | list }}'
+      notify: Restart OpenXPKI
+
+    - name: Create content links to realm.tpl
+      file:
+        state: 'link'
+        src: '/etc/openxpki/config.d/realm.tpl/{{ item[1].path }}'
+        dest: '/etc/openxpki/config.d/realm/{{ item[0] }}/{{ item[1].path }}'
+        owner: 'openxpki'
+        group: 'www-data'
+      when: item[0] in (item[1].realms | default(openxpki_all_realms))
+      loop: '{{ openxpki_all_realms | product(openxpki_realm_links) | list }}'
+      notify: Restart OpenXPKI
+
+    - name: Create content files
+      copy:
+        dest: '/etc/openxpki/config.d/realm/{{ item[0] }}/{{ item[1].path }}'
+        content: '{{ (item[1].content | to_nice_yaml) if item[1].content | default(false) else omit }}'
+        src: '{{ item[1].file | default(omit) }}'
+        owner: 'openxpki'
+        group: 'www-data'
+        mode: '0640'
+      when: item[0] in (item[1].realms | default(openxpki_all_realms))
+      loop: '{{ openxpki_all_realms | product(openxpki_realm_files) | list }}'
+      notify: Restart OpenXPKI
+      tags:
+         - openxpki-realms-singlefiles
+
+  tags:
+    - openxpki-realms-files
+
+...

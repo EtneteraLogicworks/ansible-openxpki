@@ -1,0 +1,12 @@
+---
+# Ansible tasks
+#
+# OpenXPKI crypto setup
+
+- name: Create OpenXPKI crypto configuration
+  template:
+    src: 'crypto.yaml.j2'
+    dest: '/etc/openxpki/config.d/system/crypto.yaml'
+  notify: Restart OpenXPKI
+
+...

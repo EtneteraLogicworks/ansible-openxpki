@@ -1,0 +1,7 @@
+{% for user in openxpki_local_users | default([]) %}
+{{ user.name }}:
+   digest: '{{ user.password }}'
+   role: {{ user.role }}
+
+{% endfor %}
+
